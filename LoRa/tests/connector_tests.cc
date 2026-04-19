@@ -575,7 +575,12 @@ TEST(ConnectorTests, LocalZmqTransportPubSubExchange) {
                                            endpoint,
                                            topic);
     publisher.open();
-    publisher.send_message("payload-via-zmq");
+
+    // Mitigate PUB/SUB slow-joiner timing variance on shared CI runners.
+    for (int attempt = 0; attempt < 5; ++attempt) {
+        publisher.send_message("payload-via-zmq");
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     subscriber_thread.join();
     EXPECT_EQ(received, "payload-via-zmq");
